@@ -5,8 +5,8 @@
 
 
 void affichage(char** arguments){
-  int i=1;
-  for(i=1;arguments[i]!=NULL;i++){
+  int i;
+  for(i=0;arguments[i]!=NULL;i++){
     //pas de sizeof(arguments) qui est 8!!(via gdb --reconnaissance)
     //arguments[i]=0x0 soit NULL sur gdb point d'arret dans while modifie donc.
     const char* s1=arguments[i];
@@ -21,6 +21,9 @@ void affichage(char** arguments){
     return;
 }
 int main(int argc, char** argv){
-  affichage(argv);
+  char* nom1="ismail";
+  char* nom2="meryem";
+  char* argss[]={nom1,nom2,NULL};
+  affichage(argss);
   return 0;
 }

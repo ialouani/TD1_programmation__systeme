@@ -52,4 +52,6 @@ CE QUI FAIT D'ELLE UN FONCTION SYSCALL.
 Le fait qu'elle appelle errno donc interagit avec le Kernel en gros fait d'elle une fonction système qui gère les erreurs en messages en sortie standard surtout(interface utilisateur).
 ===============================================================================================
 =>EXO6:
+perror appelle errno donc en delicat c'est un appel systeme.
+En general il faut suivre la procedure suivante pour eviter des erreurs au niveau du read:
 
