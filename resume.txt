@@ -1,0 +1,55 @@
+EXO1:(pages du manuel et section(s))
+on a plusieurs sections dans chacune une page de manuel.
+la commande par exemple (man(1))via man -k 1 man;;(optionnel pour infos autres) man 1 chmod permet de localiser les pages de manuel indépendamment des sections dans lesquelles elle se trouvent grâce à l'option -k on en reviendra par la suite.
+lorsqu'on cherche precisement une page dont on connait le nom, on pourra s'aider de grep(1) pour sélectionner les pages dont le nom commence exactement par celui dont on souhaite.
+EX:
+$ man -k write | grep ^write.
+Ca donnera write(1),write(2),etc..
+Remarque: chmod est dans une section, la recherche via grep(1) avec le man(1) appliqué au grep permet avec le -k de selectionner les sous-sections d'une section d'une page de manuel où se trouve la documentation. 
+=>chmod se trouve dans une section, le système d'exploitation tourné guidé par le Kernel subdivise la section du manuel en sous-sections étiqutées par des lettres.
+*Avec l'application à printf soit man -k printf | grep ^printf on obtient 1,3. La section ou bien disons la sous section dans une des pages du manuel est la 3ième pour la fonction standard de stdio.h dans C:printf.  
+Rq:
+Les autres page(s) de manuel correspondent à l'utilisation general de printf dans un script via un language interprete par exemple: php.
+(VOIR exemple : exo1.php).
+=================================================================================================
+EXO2:(Implémentation des appels système)
+Rq: uname: linux.
+>passons au coeur de l'exo2:
+En informatique, un appel système (c'est-à-dire appel au système [d'exploitation]1 via le kernel (anti-chargement)) (en anglais, system call, abrégé en syscall) désigne le moment où un programme s'interrompt pour demander au système d'exploitation d'accomplir pour lui une certaine tâche. L'expression désigne donc aussi la fonction primitive elle-même fournie par le noyau d'un système d'exploitation. Sont ainsi contrôlées et uniformisées les applications de l'espace utilisateur ; certains droits d'accès peuvent de plus être réservés au noyau. Le noyau lui-même utilise ces fonctions, qui deviennent la seule porte entre un programme et le « monde extérieur ».
+
+Le rôle du noyau est de gérer les ressources matérielles (il contient des pilotes de périphériques) et de fournir aux programmes une interface uniforme pour l'accès à ces ressources. Dans cette configuration, par exemple, toutes les instructions de lecture ou d'écriture sur un média externe doivent passer par le noyau, qui les passe au pilote, lequel les passe au média. L'exigence de modularité est ainsi satisfaite.
+
+Quelques appels système classiques :
+
+    open, read, write et close qui permettent les manipulations sur les systèmes de fichiers ;
+    brk, sbrk, utilisés par malloc et free pour allouer et libérer de la mémoire.
+>appel système:
+Un appel système requiert une instruction assembleur specifique, par exemple:
+ta sur Sparc
+int sur x86
+trap sur m68k
+syscall sur x86_64
+ce sont des exemples d'instructions via le language d'assemblage de la deuxième colonne.
+On dessasemble la bibliotheque standard de C: /usr/lib/x86_64-linux-gnu/libc.a avec objdump(1) -t pour savoir les fonctions en general de la bibliotheque C statique où se retrouvent certaines fonctions dans le cas général. avec -t mais avec -d on obtient un resultat different genre l'implementation en assembleur de la fonction elle - meme ??...
+=>Question: Trouver comment le OS reconnait quel appel système est demandé:
+Via une ligne: une adresse similaire au jump tracant le nouveau etat intermediaire du processeur puis le mot clef syscall identifiant ainsi quel appel systeme avec la ligne et d'autres choses supplémentaires on retrouve en quoi cette appel systeme (comme errno,perror dans errno.h et stdio.h) consiste.
+===============================================================================================
+EXO3&4:
+« Dumper » un exécutable est normalement assez long. Le programme head ci-dessous affiche les premières lignes du résultat du « dump » du programme « Hello world ». 
+od -x les affiche tous.
+chaque sous partie est relié à un ensemble de sections d'adresses diverses.
+=>EXO3:
+via write
+int w=write(STDOUT_FILENO,s,strlen(s)) avec s de type char const *
+puis "\n" puis long en char +'0' puis (chaar const*)& puis write de meme.
+fprintf avec stdout le message comme printf "%ld\n" et comme $3:=len qui est le nombre d'octets affichées suivant argv[] en TOTAL.//
+=>EXO4:
+execev qui s'applique sur argv[1](/bin/ls) argv+1 pour la VALEUR de $2 ; envp avec $3:=char** envp pour le main(-l en tout avec l'application repertorie le contenu du folder en cours).
+===============================================================================================
+=>EXO5:
+La fonction perror() permet de traduire les codes d'erreur en une forme humainement lisible. Notez que errno est indéfinie après un appel de fonction système ou de bibliothèque réussi. Une telle fonction peut modifier errno même si elle réussit, ne serait-ce que parce que des appels système internes peuvent échouer.
+CE QUI FAIT D'ELLE UN FONCTION SYSCALL.
+Le fait qu'elle appelle errno donc interagit avec le Kernel en gros fait d'elle une fonction système qui gère les erreurs en messages en sortie standard surtout(interface utilisateur).
+===============================================================================================
+=>EXO6:
+
