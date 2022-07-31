@@ -54,4 +54,184 @@ Le fait qu'elle appelle errno donc interagit avec le Kernel en gros fait d'elle 
 =>EXO6:
 perror appelle errno donc en delicat c'est un appel systeme.
 En general il faut suivre la procedure suivante pour eviter des erreurs au niveau du read:
+il faut faire un read char par char.
+On commence par copier argv[] sur un fichier avec fputs via FILE* f=fopen("file","rw+");
+puis fputc('\n',f) a chaque tour de boucle de 1 à argc-1 ou i<argc si ++i..///
+Puis Avec Cela, on dispose d'un fichier où se trouve ligne par ligne les *(argv[]) puis avec cela, le f on fait un ptr_t qui va pointer vers l'inode du fichier soit via un int fd retour de open "file",O_RDONLY puis on fait une boucle sur la condition read(fd,&c,1)>0. (on copie le contenu char par char via char c declaration;;) puis a l'intèrieur on fera:
+s de type const char* qui prend &c puis on fait un write(STDOUT_FILENO,s,strlen(s)) pas putchar(c) NON ce qui va permettre d'ecrire sur la sortie standard caractere par caractere et des qu'un saut a la ligne est du c'est gere par les appels systemes. EN gros, l'appel systeme ici se retrouve dans le retour de open.
+<=>EXPLICATIONS:
+int open(char* pathname, int flags,/*int mode*/); //avec mode de type mode_t si O_create est dans les flags ca specifie les permissions maximales du fichier cree. On pourra le positionner sur le C à 0666. 
+ca retourne mais elle fait quoi au juste?
+=>Cette fonction cherche le fichier dans la table de fichiers, identifie et definit un pointeur vers ce dernier qui est le inode ce dernier(descripteur de fichier).
+RESUME UTILE DES INODES:(2 structures de fichiers sur le kernel)
+Qu'est-ce que le descripteur de fichier ?
+****Le descripteur de fichier est un entier qui identifie de manière unique un fichier ouvert du processus.
+
+****Table de descripteurs de fichiers : la table de descripteurs de fichiers est la collection d'indices de tableau d'entiers qui sont des descripteurs de fichiers dans lesquels les éléments sont des pointeurs vers des entrées de table de fichiers. Une table de descripteurs de fichiers unique est fournie dans le système d'exploitation pour chaque processus.
+
+****Entrée de table de fichiers : les entrées de table de fichiers sont une structure de substitution en mémoire pour un fichier ouvert, qui est créée lorsque le processus demande d'ouvrir le fichier et que ces entrées conservent la position du fichier.
+
+
+****_2:
+	Descripteurs de fichiers standard : lorsqu'un processus démarre, le fichier fd (descripteur de fichier) 0, 1, 2 de la table des descripteurs de processus s'ouvre automatiquement, (par défaut) chacune de ces 3 entrées de table de fichiers de références fd pour un fichier nommé /dev/tty.
+
+/dev/tty : substitut en mémoire pour le terminal.
+Le descripteur de fichier est ce qui retourne open. 
+Elle prend un char* pathname, puis un flags ; tout simple.
+On a ainsi explique en quoi consistait les descripteurs de fichiers ; la valeur de retour de open qui consiste en un pointeur vers les metadata via une table de fichiers et une table de descripteurs d'indirections. Puis avec cette info, on a l'inode '' en question et avec ca, on pourrait faire un close avec ce parametre.
+VOILA.
+3)fonction troisieme importante:
+ssize_t read(int fd, void* buf, size_t count)
+4)fonction quatrieme importante:
+ssize_t write(int fd, void* buf, size_t count)
+Les deux retournent le nomnre d'octets lus ou ecrits sur un flux dirigé.(file)
+=>Problème: ca fait 2 appels systemes pour copier un char;ce qui est problematique.
+===========================================================================================
+EXO7:
+fstat/champ st_mode(stub<<=>open) de la structure stat.
+=>On doit afficher le type de l'entrée standard:
+a ne pas oublier pour les:
+open/close/ssize_t read/ssize_t write.
+RESUME:
+int open(char* pathname, int flags, mode_t mode(0666))
+retourne le fd.
+int close(int fd).
+flags dans une plage de choix.
+PUIS 2 fonctions dernieres:
+ssize_t read(int fd, void* buf, size_t count)
+et de meme: ssize_t write(int fd, void* buf, size_t count)
+ca lit depuis le ptr_t vers le fichier en question : LE FD.(descripteur,identificateur des metadata) et ecrit dans buf.
+puis on ecrit ces donnees lues dans un deuxieme fd(()) avec le buf et le size_t count. Ca retourne -1 ou bien 0 si aucune ecriture soit normalement le nombre d'octets lus.
+=>NOW:
+le processus d'avant s'appels l'aliasing sur les fichiers ouverts.((plus specialement sur les : INODES))
+RESUMONS LE RESTE..:::>>>>>
+dup/fork:
+dup ou bien dup2 mieux permet de faire une copie intermediaire geree par le systeme d'un inode. on fait un open avec comme flags O_WRONLY|0_APPEND puis on redirige les fonctions printf vers celui-la via dup2(fd,1) avec 1 correspondant au ..
+> Vous trouverez ci-dessous une implémentation C dans laquelle le descripteur de fichier de sortie standard (stdout) est utilisé. Cela conduira à écrire toutes les instructions printf() dans le fichier référencé par l’ancien descripteur de fichier.(make && ./dernier_target quiappelle creation). ((tricky.txt))
+> CAD. que dup2(fd,newfd) va faire en sorte que toutes les ecritues sur newfd ici 1 (stdout) vont se retrouver dans fd d'où l'écriture fprintf,write implicite dans un fichier.
+<=>partie 1/2 de aliasing sur le descripteur de fichier. 
+2)fork():
+****La fonction fork est utilisée pour créer un nouveau processus représentant la duplication du processus de l’appelant. Notez que le processus appelant est traditionnellement appelé processus parent et un processus nouvellement créé - un processus enfant. Bien que nous ayons mentionné ci-dessus que le processus enfant est un double du processus parent, il existe certaines différences, comme le fait que le processus enfant a son propre PID unique (tous les détails sur les différences sont énumérés dans le manuel de fork page).
+**** Un fork est une fonctionnalité sous les systèmes Unix ou Linux qui permet de dupliquer un processus. Pour expliquer son fonctionnement, on va partir d'un processus qu'on appellera avec affection "Le Papa". Ce processus va simplement se dupliquer et les deux processus (le père et le fils) afficheront chacun leur statut (père ou fils). 
+=>Cela met en évidence la ressemblance des descripteurs de fichiers, c'est en soit le deuxieme aliasing sur les descripteurs de fichiers.
+Partons de ce code-là:
+/*
+int main(void){
+pid_t pid;
+char* qui_suis_je="Le pere";
+pid=fork();
+if(pid==0){
+strcpy(qui_suis_je,"Le fils);
+printf("Je suis %s",qui_suis_je);
+else{
+printf("Je suis %s",qui_suis_je);
+wait(NULL);
+}
+return 0;
+}
+*/
+**Le père a appelé fork et il s'est dupliqué. Cela implique plusieurs choses:
+
+    Un nouveau processus a été créé, il est considéré comme le fils du processus qui a appelé fork().
+    Ce processus est une copie conforme de son père. D'ailleurs, la prochaine instruction à exécuter sera la même pour les deux : la condition if.
+    La fonction fork() ne retourne pas la même chose pour les deux processus. Pour le fils, il retournera 0. Pour le père, il retournera le pid du fils (son numéro de processus).
+    Cette duplication implique certaines choses concernant les variables et les descripteurs de fichiers. Nous allons y venir.
+
+**Les deux processus viennent de vérifier la condition if. Etant donné que chez le père, la variable pid est différente de 0, il continuera dans le else. Par contre, le fils entrera dans le bloc du if car, pour lui, pid est égal à 0.
+
+Important: C'est donc ainsi qu'on maîtrise le fil d'exécution du père et celui du fils: en vérifiant la valeur de la variable pid qui est différente pour les deux.
+
+On continue. 
+
+**Attention ici c'est un point à ne pas manquer!
+
+    Le fils a changé la valeur de sa variable quisuisje. Ceci a changé la valeur de sa propre variable quisuisje, mais pas celle du père. Voici donc notre première conclusion: les variables du père et celles du fils sont totalement distinctes ; même si elles portent le même nom, il ne s'agit pas des mêmes variables. En revanche, vous aurez remarqué qu'au moment du fork, le fils avait hérité des valeurs de toutes les variables de son père.
+    Le père vient de faire un printf et a donc écrit "Je suis Le pere" sur le flux de sortie standard (stdout). Donc, après cette écriture, le pointeur du fichier stdout a avancé de 15 caractères (la longueur de la phrase affichée). Avez-vous remarqué qu'il en était de même chez le fils? En effet, si le père et le fils ont des variables distinctes, en revanche, leur descripteurs de fichiers sont les mêmes. Donc, si l'un des deux processus modifie son pointeur de position dans un fichier, ça se répercutera également chez l'autre. Attention, cela ne vaut que pour les descripteurs de fichiers hérités durant le fork. Si le père ou le fils ouvre d'autres fichiers après le fork, ces descripteurs ne seront pas partagés entre eux deux. De même, si le fils ferme un descripteur de fichier hérité du père, le descripteur de fichier du père ne sera par contre pas fermé (même chose dans le sens inverse).
+    
+    
+**     Côté fils: un printf a été fait, cette fois pour afficher "Je suis Le fils". Le pointeur de fichier a donc avancé de 15 chez le fils, ce qui se répercute chez le père.
+    Côté père: le père a exécuté la fonction wait(). Cette fonction permet la synchronisation entre le père et tous ses fils. Cela signifie que le père va arrêter de s'exécuter (dans ce cas on dit qu'il dort) jusqu'à ce que son fils se termine complètement. 
+    
+**Le fils vient d'exécuter sa dernière instruction ; à présent, il n'existe plus. Pendant ce temps-là, le père était encore en attente, mais il va bientôt se réveiller puisque le fils est terminé. Enfin, le père se terminera lui aussi. 
+
+
+
+Passons à l'instruction suivante pour les deux.
+C'est fini!
+REVENONS A L'EXO7:
+(on a assez discute sur dup2 et fork(les 2 aliasing de descripteurs de fichiers))
+=> La fonction fstat a le prototype suivant:
+int fstat(int fildes,struct stat *buf)
+$1: fd(identificateur)
+$2: retourne les informations sur le fichier.
+-----------------------UTILISATION DE LA FONCTION FSTAT:
+fstat comme on a dit prend en arguments le ptr_t value vers le i_node dans la table de descripteurs et un struct stat. On nomme: struct stat fileStat puis on fait if(fstat(file,&fileStat)<0) return 1; 
+PUIS ON COMMENCE LES TRAITEMENT A FAIRE:
+le fstat(file=open(argv[1],O_RDONLY),&fileStat) avec fileStat de type struct stat definera par effet de bord des champs dans fileStat relatif a argv[1] dans ce cas.
+PARMI LES PLUS IMPORTANTS:
+st_size
+st_nlink
+st_ino
+POUR ACCEDER AU file permissions il faut vérifier si c'est un directory pour cela on fait l'application de la fonction S_ISDIR(fileStat.st_mode) puis on recommence les images de if (les return classiques en recursif JSNODE) le test de fileStat.st_mode & {S_IRUSR ;//SR;;PP;;TH} toujours la meme forme(cours compilation..) S_IR/W/X;;;U/G/O;;;SR/PP/TH .
+Et enfin: Pour déterminer si c'est pas un lien symbolique ce fichier, on applique S_ISLNK avec comme argument fileStat.st_mode.
+=>le st_mode derivée de fileStat est important ainsi que les fonctions S_ISLNK/S_ISDIR/S_IXGPP(le groupe a le droit d'executer le fichier).
+=>=>POUR FAIRE CELA, il faut:
+premierement lire le fichier avec open via:
+int fd=open(argv[1],O_RDONLY);
+deuxièment récupérer la structure state qui définit qlqs infos sur le fichier:
+struct stat fileStat puis appliquer par effet de bord la fonction en if:
+fstat(fd,&fileStat)
+qui doit être positive>=0 et le open >0 soit !<-1.(espacage possible..///).
+Puis Utiliser fileStat.st_mode via des args de fcts pour tester plusieurs choses comme:
+S_ISDIR/S_ISLNK (fileStat.st_mode).
+POUR ALLER PLUS LOIN:
+les permissions fileStat.st_mode & S_IR/W/X;;U/G/O;;SR/PP/TH 
+et les informations via:
+fileStat.st_size
+fileStat.st_nlink
+fileStat.stino
+VOILA.
+Rq: la fonction fstat manipule un inode indirectement en opérant sur fd qui est un inode donc c'est une fonction qui manipule un inode ; voilà tout ce qui doit etre dit.
+Rq: par contre: read/write manipule des descripteurs de fichier en bonne langue car il retourne le fd correspondant.
+Rq: fopen/fclose/fgets/fputs sont des fonctions normales de la bibliothèque C.
+Rq:
+EACCES: pb de permission dans les chemins d'accès
+ENOENT: chemin n'existe pas
+ELOOP: trop de liens symboliques(un lien pointe typiquement vers un des répertoires parents).
+Rq:
+DETAILS SUR LA STRUCT STAT
+struct stat comporte a part off_t st_size et ino_t st_ino et mode_t st_mode :
+dev_t st_dev : peripherique
+nlink st_nlink : nombre de liens matèriels
+uid_t st_uid: uid proprietaire
+git_t st_git : gid  proprietaire
+dev_t st_rdev type peripherique
+blksize_t st_blksize : taille de blocs pour E/S
+blkcnt_t st_blocks: nombre de blocs alloués
+time_t st_atime/mtime/ctime: heure dernier acces/derniere modif/dernier changement d'etat.
+REVENONS A L'EXO;c'est fini.
+==============================================================================================
+EXO8:
+On doit ecrire un programme qui lit sur son entree standard ce qui est produit par le programme write_number et l'affiche.
+Rq: g++ -m32 ne marche pas car mingw..///
+Rq: file ./a.out d'un coté permet de tester si l'executable final en est en 64||32 bits.
+Rq: on compile avec gcc -std=c99 -m64
+Rq: plusieurs possiblitées.(include sys/cdefs.h pour manipuler la grandeur de lexecutable...)
+LA PREMIERE:
+faire tout dans un seul fichier ::
+>>>(sans oublier #include<fcntl.h>)
+on ecrit le contenu de write_number dans un fichier avec open/read on le stocke dans une mémoire tampon qui sera lue à la fin avec printf.
+2IEME METHODE:
+faire deux fichiers, l'un fait un printf de ce qui est ecrit mais pas d'execution.
+l'autre va lire'' ce fichier avec execev(argv[1],argv+1,envp) et avec cela:
+./lire ./ecrire va executer ./ecrire suivant la compialtion en ./lire soit afficher le resultat;ca ca permet de lire sur l'entree standard ce qui est produit par le write_number et l'afficher par de suite.
+PLUSIEURS METHODES SE PRESENTENT;ON SE LIMITERA A CELA.
+CONCLUSION A TIRER DE CECI: la compilation en options permet de mitiger la nature sous de l'appel système.
+==============================================================================================
+EXO9:
+
+
+
+
+
 
