@@ -229,7 +229,13 @@ PLUSIEURS METHODES SE PRESENTENT;ON SE LIMITERA A CELA.
 CONCLUSION A TIRER DE CECI: la compilation en options permet de mitiger la nature sous de l'appel système.
 ==============================================================================================
 EXO9:
-
+Rq: dans stdio.h ; la fonction int fileno(FILE* stream) doit renvoyer le descripteur de fichier entier associé au flux pointé par stream. 
+Rq2: il y a une différence entre stat et fstat ; fstat modifie par effet de bord via un inode un fd deja joue avec mais stat de prototype: int stat(const char* path, struct stat* buf) recupere l'etat du fichier pointée par path et remplit le tampon buf. 
+=>On reutilise les fonctions mises en oeuvre dans la copie.
+=>le test.txt peut etre ecrit avec fprintf apres un fopen(ignorer les warning ou bien flags ou bien compiler avec g++...à
+=>Le makefile est bien ordonne.
+RESTE DES CHOSES A METTRE AU POINT ; CA SERA AU TD SUIVANT.
+FIN_TD1.
 
 
 
