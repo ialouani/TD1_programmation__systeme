@@ -236,6 +236,62 @@ Rq2: il y a une différence entre stat et fstat ; fstat modifie par effet de bor
 =>Le makefile est bien ordonne.
 RESTE DES CHOSES A METTRE AU POINT ; CA SERA AU TD SUIVANT.
 FIN_TD1.
+REMARQUES DERNIERES:
+****
+L'appel système est utilisé dans le langage C pour supprimer un titre ou un nom de n'importe quel système de fichiers, par exemple, le système Linux. Il élimine l'entrée ou le lien d'un fichier ou d'un répertoire spécifique du système de fichiers, ce qui montre que le fichier ou le dossier a été supprimé, ce qui n'est pas le cas. Si le fichier ou le dossier ne fonctionne pas ou n'est pas ouvert actuellement, ce fichier ou ce dossier peut être supprimé lors de son utilisation dans l'appel système unlink(). C'est le cas lorsque le nombre de liens de fichiers ou de dossiers est égal à 0. Examinons quelques exemples simples de l'appel système Unlink pour bien le comprendre. Connectez-vous à partir du système Ubuntu 20.04 et ouvrez le terminal pour commencer.
+****
+
+2)
+****
+Il existe deux types de liens, à savoir un lien symbolique et un lien physique vers un fichier. La bibliothèque C a une fonction link() qui crée un nouveau lien physique vers un fichier existant. La fonction symlink() pour créer un lien symbolique. Si le fichier/chemin du lien existe déjà, il ne sera pas écrasé. Les fonctions link() et symlink() renvoient 0 en cas de succès. Si une erreur se produit, alors -1 est renvoyé. Sinon, « errno » (numéro d'erreur) est défini de manière appropriée.
+
+Lien symbolique : un lien symbolique (également appelé lien symbolique) agit comme un pointeur ou une référence au nom de fichier. Il n'accède pas aux données disponibles dans le fichier d'origine. Si le fichier précédent est supprimé, le lien symbolique pointera vers un fichier qui n'existe plus.
+
+Lien physique : un lien physique agit comme une copie (en miroir) du fichier sélectionné. Il accède aux données disponibles dans le fichier d'origine.
+Si le fichier précédemment sélectionné est supprimé, le lien physique vers le fichier contiendra toujours les données de ce fichier.
+****
+3)
+La lecture en tampon a ete realisee ; c'est facile..
+une fonction qui prend le file un const char* puis count puis char* buf
+tjrs le buf et count
+ca va lire depuis byte=read(fd,buf,length=count au debut) tout
+puis buf=buf+length et length=length-byte avec byte=length___ancien=compteur dans lecture.c contexte.
+VOILA.
+IMPORTANT:***********************POUR EN FINIR avec les 3 parties du cours:
+**Importance de l'iOS et structuration hardware/kernel pour l'user.
+**Pages manuels en sous-sections et syscall dans les strace des fonctions shell normaux
+**Systemes de fichiers et principe des metadata(inodes) 
+**Structuration des fichiers et utilisation des appels systemes pour jouer avec tout cela.
+(en C)
+MAINTENANT:(derniere chose)
+>LES REPERTOIRES:
+1-DIR* opendir(const char* name) 
+par exemple dans dernierr.c on a fait: DIR* rep; puis rep=opendir("/");
+**********PARLONS DE LA struct dirent:
+struct dirent{
+ino_t d_ino /*numero de l'inode*/
+off_t d_off /*decalage vers le prochain dirent*/
+unsigned short d_reclen;
+ /*type du fichier*/
+unsigned char d_type;
+/*(inverses)longueur de cet enregistrement
+char d_name[256];
+};
+2-APRES C'est pour cela ::
+>>>>>on declare un struct direct* lecture puis lecture=readdir(rep) avec rep de type DIR* et via const char* name qui vaut en deferencement / dans notre exemple.
+PUIS AVEC CELA, on peut faire une manipulation qui gere le parcours via dirent->d_name
+cad. afficher le contenu sans approfondissement du repertoir.
+PUIS: derniere chose:: int close(DIR* rep);;;
+Voilà.
+La partie sur les syscall comportant le coeur des fichiers avec le 1er TD avant est finie.
+END.
+
+
+
+
+
+
+
 
 
 
